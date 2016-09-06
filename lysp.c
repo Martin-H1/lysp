@@ -26,7 +26,9 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <errno.h>
+#ifndef CC65
 #include <sys/errno.h>
+#endif
 #include <assert.h>
 
 #ifndef BDWGC
@@ -42,6 +44,13 @@
 #endif
 #define balloc	GC_malloc_atomic
 #define malloc	GC_malloc
+
+#ifndef CC65
+#define MAX_BUF 1024
+#else
+#define MAX_BUF 128
+#define isatty(V) 1
+#endif
 
 static void fatal(const char *fmt, ...)
 {
@@ -79,29 +88,29 @@ struct _Cell
       Cell	*expr;
       Cell	*env;
     }		 mExpr;
-  };
+  } data ;
 };
 
-Cell *mkNumber(long n)		{ Cell *self= balloc(sizeof(Cell));  self->mTag= Number;  self->mNumber= n;				return self; }
-Cell *mkString(const char *s)	{ Cell *self= balloc(sizeof(Cell));  self->mTag= String;  self->mString= s;				return self; }
-Cell *mkSymbol(const char *s)	{ Cell *self= balloc(sizeof(Cell));  self->mTag= Symbol;  self->mString= s;				return self; }
-Cell *cons(Cell *a, Cell *d)	{ Cell *self= malloc(sizeof(Cell));  self->mTag= Cons;    self->mCons.a= a;     self->mCons.d= d;	return self; }
-Cell *mkSubr(Subr_t fn)		{ Cell *self= balloc(sizeof(Cell));  self->mTag= Subr;    self->mSubr= fn;				return self; }
-Cell *mkFsubr(Subr_t fn)	{ Cell *self= balloc(sizeof(Cell));  self->mTag= Fsubr;   self->mSubr= fn;				return self; }
-Cell *mkExpr(Cell *x, Cell *e)	{ Cell *self= malloc(sizeof(Cell));  self->mTag= Expr;    self->mExpr.expr= x;  self->mExpr.env= e;	return self; }
-Cell *mkFexpr(Cell *x, Cell *e)	{ Cell *self= malloc(sizeof(Cell));  self->mTag= Fexpr;   self->mExpr.expr= x;  self->mExpr.env= e;	return self; }
-Cell *mkPsubr(Subr_t fn)	{ Cell *self= balloc(sizeof(Cell));  self->mTag= Psubr;   self->mSubr= fn;				return self; }
+Cell *mkNumber(long n)		{ Cell *self= balloc(sizeof(Cell));  self->mTag= Number;  self->data.mNumber= n;				return self; }
+Cell *mkString(const char *s)	{ Cell *self= balloc(sizeof(Cell));  self->mTag= String;  self->data.mString= s;				return self; }
+Cell *mkSymbol(const char *s)	{ Cell *self= balloc(sizeof(Cell));  self->mTag= Symbol;  self->data.mString= s;				return self; }
+Cell *cons(Cell *a, Cell *d)	{ Cell *self= malloc(sizeof(Cell));  self->mTag= Cons;    self->data.mCons.a= a;     self->data.mCons.d= d;	return self; }
+Cell *mkSubr(Subr_t fn)		{ Cell *self= balloc(sizeof(Cell));  self->mTag= Subr;    self->data.mSubr= fn;				return self; }
+Cell *mkFsubr(Subr_t fn)	{ Cell *self= balloc(sizeof(Cell));  self->mTag= Fsubr;   self->data.mSubr= fn;				return self; }
+Cell *mkExpr(Cell *x, Cell *e)	{ Cell *self= malloc(sizeof(Cell));  self->mTag= Expr;    self->data.mExpr.expr= x;  self->data.mExpr.env= e;	return self; }
+Cell *mkFexpr(Cell *x, Cell *e)	{ Cell *self= malloc(sizeof(Cell));  self->mTag= Fexpr;   self->data.mExpr.expr= x;  self->data.mExpr.env= e;	return self; }
+Cell *mkPsubr(Subr_t fn)	{ Cell *self= balloc(sizeof(Cell));  self->mTag= Psubr;   self->data.mSubr= fn;				return self; }
 
-int nilP(Cell *self)		{ return !self; }
-int numberP(Cell *self)		{ return self && self->mTag == Number; }
-int stringP(Cell *self)		{ return self && self->mTag == String; }
-int symbolP(Cell *self)		{ return self && self->mTag == Symbol; }
-int consP(Cell *self)		{ return self && self->mTag == Cons; }
-int subrP(Cell *self)		{ return self && self->mTag == Subr; }
-int fsubrP(Cell *self)		{ return self && self->mTag == Fsubr; }
-int exprP(Cell *self)		{ return self && self->mTag == Expr; }
-int fexprP(Cell *self)		{ return self && self->mTag == Fexpr; }
-int psubrP(Cell *self)		{ return self && self->mTag == Psubr; }
+int nilP(Cell *self)		{ return self != NULL; }
+int numberP(Cell *self)		{ return self != NULL && self->mTag == Number; }
+int stringP(Cell *self)		{ return self != NULL && self->mTag == String; }
+int symbolP(Cell *self)		{ return self != NULL && self->mTag == Symbol; }
+int consP(Cell *self)		{ return self != NULL && self->mTag == Cons; }
+int subrP(Cell *self)		{ return self != NULL && self->mTag == Subr; }
+int fsubrP(Cell *self)		{ return self != NULL && self->mTag == Fsubr; }
+int exprP(Cell *self)		{ return self != NULL && self->mTag == Expr; }
+int fexprP(Cell *self)		{ return self != NULL && self->mTag == Fexpr; }
+int psubrP(Cell *self)		{ return self != NULL && self->mTag == Psubr; }
 
 #ifndef NDEBUG
 # define require(X) assert(X)
@@ -109,21 +118,21 @@ int psubrP(Cell *self)		{ return self && self->mTag == Psubr; }
 # define require(X) if (!(X)) return 0
 #endif
 
-long	    number(Cell *self)		{ require(numberP(self));  return self->mNumber; }
-const char *string(Cell *self)		{ require(stringP(self));  return self->mString; }
-const char *symbol(Cell *self)		{ require(symbolP(self));  return self->mSymbol; }
-Subr_t	    subr(Cell *self)		{ require(subrP(self));	   return self->mSubr; }
-Subr_t	    fsubr(Cell *self)		{ require(fsubrP(self));   return self->mSubr; }
-Cell	   *expr(Cell *self)		{ require(exprP(self));	   return self->mExpr.expr; }
-Cell	   *exprenv(Cell *self)		{ require(exprP(self));	   return self->mExpr.env; }
-Cell	   *fexpr(Cell *self)		{ require(fexprP(self));   return self->mExpr.expr; }
-Cell	   *fexprenv(Cell *self)	{ require(fexprP(self));   return self->mExpr.env; }
-Subr_t	    psubr(Cell *self)		{ require(psubrP(self));   return self->mSubr; }
+long	    number(Cell *self)		{ require(numberP(self));  return self->data.mNumber; }
+const char *string(Cell *self)		{ require(stringP(self));  return self->data.mString; }
+const char *symbol(Cell *self)		{ require(symbolP(self));  return self->data.mSymbol; }
+Subr_t	    subr(Cell *self)		{ require(subrP(self));	   return self->data.mSubr; }
+Subr_t	    fsubr(Cell *self)		{ require(fsubrP(self));   return self->data.mSubr; }
+Cell	   *expr(Cell *self)		{ require(exprP(self));	   return self->data.mExpr.expr; }
+Cell	   *exprenv(Cell *self)		{ require(exprP(self));	   return self->data.mExpr.env; }
+Cell	   *fexpr(Cell *self)		{ require(fexprP(self));   return self->data.mExpr.expr; }
+Cell	   *fexprenv(Cell *self)	{ require(fexprP(self));   return self->data.mExpr.env; }
+Subr_t	    psubr(Cell *self)		{ require(psubrP(self));   return self->data.mSubr; }
 
-Cell *car(Cell *self)			{ require(!self || consP(self));  return self ? self->mCons.a	 : 0; }
-Cell *cdr(Cell *self)			{ require(!self || consP(self));  return self ? self->mCons.d	 : 0; }
-Cell *rplaca(Cell *self, Cell *c)	{ require(!self || consP(self));  return self ? self->mCons.a= c : c; }
-Cell *rplacd(Cell *self, Cell *c)	{ require(!self || consP(self));  return self ? self->mCons.d= c : c; }
+Cell *car(Cell *self)			{ require(!self || consP(self));  return self ? self->data.mCons.a	 : 0; }
+Cell *cdr(Cell *self)			{ require(!self || consP(self));  return self ? self->data.mCons.d	 : 0; }
+Cell *rplaca(Cell *self, Cell *c)	{ require(!self || consP(self));  return self ? self->data.mCons.a= c : c; }
+Cell *rplacd(Cell *self, Cell *c)	{ require(!self || consP(self));  return self ? self->data.mCons.d= c : c; }
 
 #undef require
 
@@ -138,6 +147,7 @@ Cell *interns= 0;
 Cell *intern(const char *s)
 {
   Cell *cell= 0;
+  GC_WATCH(cell);
   for (cell= interns;  cell;  cell= cdr(cell))
     if (!strcmp(symbol(car(cell)), s))
       return car(cell);
@@ -218,20 +228,20 @@ Cell *readIllegal(int c, FILE *in)
   fprintf(stderr, "ignoring illegal character ");
   fprintf(stderr, (isprint(c) ? "%c" : "0x%02x"), c);
   fprintf(stderr, "\n");
-  return 0;
+  return NULL;
 }
 
 Cell *readBlank(int c, FILE *in)
 {
-  return 0;
+  return NULL;
 }
 
 Cell *readDigit(int c, FILE *in)
 {
-  char buf[1024];
-  int index= 0;
+  char buf[MAX_BUF];
+  int index = 0;
   char *endptr;
-  long number= 0;
+  long number = 0;
   buf[index++]= c;
   if ('0' == c) {
     if (strchr("xX", (c= getc(in))))	buf[index++]= c;
@@ -249,7 +259,7 @@ Cell *readDigit(int c, FILE *in)
 
 Cell *readAlpha(int c, FILE *in)
 {
-  char buf[1024];
+  char buf[MAX_BUF];
   int index= 0;
   buf[index++]= c;
   while ((c= getc(in)) > 0 && (readAlpha == readers[c] || readDigit == readers[c] || readSign == readers[c])) buf[index++]= c;
@@ -262,12 +272,12 @@ Cell *readSign(int c, FILE *in)
 {
   int d= getc(in);
   ungetc(d, in);
-  return (d > 0 && readers[d] == readDigit) ? readDigit(c, in) : readAlpha(c, in);
+  return (d > 0 && readers[d] == &readDigit) ? readDigit(c, in) : readAlpha(c, in);
 }
 
 Cell *readString(int d, FILE *in)
 {
-  char buf[1024];
+  char buf[MAX_BUF];
   int index= 0;
   int c;
   while ((c= getc(in)) > 0 && c != d) if ('\\' == (buf[index++]= c)) buf[index++]= getc(in);
@@ -279,6 +289,7 @@ Cell *readString(int d, FILE *in)
 Cell *readQuote(int c, FILE *in)
 {
   Cell *cell= readFile(in);
+  GC_WATCH(cell);
   if (CEOF == cell) fatal("EOF in quoted literal");
   GC_PROTECT(cell);
   cell= cons(cell, 0);
@@ -290,6 +301,7 @@ Cell *readQuote(int c, FILE *in)
 Cell *readQquote(int c, FILE *in)
 {
   Cell *cell= readFile(in);
+  GC_WATCH(cell);
   if (CEOF == cell) fatal("EOF in quasiquoted literal");
   GC_PROTECT(cell);
   cell= cons(cell, 0);
@@ -300,10 +312,12 @@ Cell *readQquote(int c, FILE *in)
 
 Cell *readUquote(int c, FILE *in)
 {
+  Cell *cell = 0;
   int splice= 0;
+  GC_WATCH(cell);
   if ('@' == (c= getc(in))) splice= 1;
   else ungetc(c, in);
-  Cell *cell= readFile(in);
+  cell= readFile(in);
   if (CEOF == cell) fatal("EOF in quasiquoted literal");
   GC_PROTECT(cell);
   cell= cons(cell, 0);
@@ -314,7 +328,10 @@ Cell *readUquote(int c, FILE *in)
 
 Cell *readList(int d, FILE *in)
 {
+  int c;
   Cell *head, *tail, *cell= 0;
+  GC_WATCH(head);
+  GC_WATCH(cell);
   tail= head= cons(0, 0);
   GC_PROTECT(head);
   GC_PROTECT(cell);
@@ -323,7 +340,6 @@ Cell *readList(int d, FILE *in)
   case '[': d= ']'; break;
   case '{': d= '}'; break;
   }
-  int c;
   for (;;) {
     while (isspace((c= getc(in))));
     if (c == d) break;
@@ -386,6 +402,8 @@ Cell *evargs(Cell *self, Cell *env)
 {
   if (self) {
     Cell *head, *tail;
+    GC_WATCH(head);
+    GC_WATCH(tail);
     head= eval(car(self), env);
     GC_PROTECT(head);
     tail= evargs(cdr(self), env);
@@ -400,6 +418,8 @@ Cell *evargs(Cell *self, Cell *env)
 Cell *evbind(Cell *expr, Cell *args, Cell *env)
 {
   Cell *cell= 0;
+  GC_WATCH(env);
+  GC_WATCH(cell);
   GC_PROTECT(env);
   GC_PROTECT(cell);
   if (consP(expr))
@@ -418,6 +438,9 @@ Cell *evbind(Cell *expr, Cell *args, Cell *env)
 Cell *evlist(Cell *expr, Cell *env)
 {
   Cell *result= 0;
+  GC_WATCH(expr);
+  GC_WATCH(env);
+  GC_WATCH(result);
   GC_PROTECT(expr);
   GC_PROTECT(env);
   GC_PROTECT(result);
@@ -439,12 +462,15 @@ void *cellToPrim(Cell *cell)
 {
   switch (cell->mTag) {
   case Cons:  case Expr:  case Fexpr:	return (void *)cell;
-  default:				return (void *)cell->mCons.a;
+  default:				return (void *)cell->data.mCons.a;
   }
 }
 
 Cell *apply(Cell *fn, Cell *args, Cell *env)
 {
+  GC_WATCH(fn);
+  GC_WATCH(args);
+  GC_WATCH(env);
   GC_PROTECT(fn);
   GC_PROTECT(args);
   GC_PROTECT(env);
@@ -454,6 +480,7 @@ Cell *apply(Cell *fn, Cell *args, Cell *env)
     case Fsubr:	return fsubr(fn)(args, env);
     case Expr:	{
       Cell *eva= evargs(args, env);
+      GC_WATCH(eva);
       GC_PROTECT(eva);
       eva= evlist(cdr(expr(fn)), evbind(car(expr(fn)), eva, exprenv(fn)));
       GC_UNPROTECT(fn);
@@ -461,6 +488,7 @@ Cell *apply(Cell *fn, Cell *args, Cell *env)
     }
     case Fexpr:	{
       Cell *eva= cons(env, 0);
+      GC_WATCH(eva);
       GC_PROTECT(eva);
       eva= cons(args, eva);
       eva= evlist(cdr(fexpr(fn)), evbind(car(fexpr(fn)), eva, fexprenv(fn)));
@@ -495,6 +523,9 @@ Cell *eval(Cell *expr, Cell *env)
   }
   case Cons: {
     Cell *cell;
+    GC_WATCH(expr);
+    GC_WATCH(env);
+    GC_WATCH(cell);
     GC_PROTECT(expr);
     GC_PROTECT(env);
     cell= eval(car(expr), env);
@@ -512,6 +543,9 @@ Cell *eval(Cell *expr, Cell *env)
 Cell *defineFsubr(Cell *args, Cell *env)
 {
   Cell *cell= 0;
+  GC_WATCH(args);
+  GC_WATCH(env);
+  GC_WATCH(cell);
   GC_PROTECT(args);
   GC_PROTECT(env);
   if (args) {
@@ -527,6 +561,9 @@ Cell *defineFsubr(Cell *args, Cell *env)
 Cell *setqFsubr(Cell *args, Cell *env)
 {
   Cell *key, *value= 0;
+  GC_WATCH(args);
+  GC_WATCH(env);
+  GC_WATCH(value);
   GC_PROTECT(args);
   GC_PROTECT(env);
   key= car(args);
@@ -558,6 +595,9 @@ Cell *flambdaFsubr(Cell *args, Cell *env)
 Cell *letFsubr(Cell *args, Cell *env)
 {
   Cell *cell, *tmp= 0;
+  GC_WATCH(args);
+  GC_WATCH(env);
+  GC_WATCH(tmp);
   GC_PROTECT(args);
   GC_PROTECT(env);
   GC_PROTECT(tmp);
@@ -573,6 +613,8 @@ Cell *letFsubr(Cell *args, Cell *env)
 Cell *orFsubr(Cell *args, Cell *env)
 {
   Cell *value;
+  GC_WATCH(args);
+  GC_WATCH(env);
   GC_PROTECT(args);
   GC_PROTECT(env);
   for (value= 0;  args && !value;  args= cdr(args))
@@ -584,6 +626,8 @@ Cell *orFsubr(Cell *args, Cell *env)
 Cell *andFsubr(Cell *args, Cell *env)
 {
   Cell *value;
+  GC_WATCH(args);
+  GC_WATCH(env);
   GC_PROTECT(args);
   GC_PROTECT(env);
   for (value= _S_t;  args && value;  args= cdr(args))
@@ -595,6 +639,8 @@ Cell *andFsubr(Cell *args, Cell *env)
 Cell *ifFsubr(Cell *args, Cell *env)
 {
   Cell *cell;
+  GC_WATCH(args);
+  GC_WATCH(env);
   GC_PROTECT(args);
   GC_PROTECT(env);
   cell= (eval(car(args), env) ? eval(cadr (args), env) : eval(caddr(args), env));
@@ -605,6 +651,9 @@ Cell *ifFsubr(Cell *args, Cell *env)
 Cell *whileFsubr(Cell *args, Cell *env)
 {
   Cell *result= 0;
+  GC_WATCH(args);
+  GC_WATCH(env);
+  GC_WATCH(result);
   GC_PROTECT(args);
   GC_PROTECT(env);
   GC_PROTECT(result);
@@ -616,6 +665,8 @@ Cell *whileFsubr(Cell *args, Cell *env)
 Cell *mapArgs(Cell *args)
 {
   Cell *arg, *tail;
+  GC_WATCH(args);
+  GC_WATCH(arg);
   if (!args) return 0;
   arg= caar(args);
   GC_PROTECT(args);
@@ -630,6 +681,9 @@ Cell *mapArgs(Cell *args)
 Cell *mapSubr(Cell *args, Cell *env)
 {
   Cell *fn= car(args), *head, *tail, *cell= 0;
+  GC_WATCH(args);
+  GC_WATCH(env);
+  GC_WATCH(cell);
   GC_PROTECT(args);
   GC_PROTECT(env);
   GC_PROTECT(cell);
@@ -648,6 +702,8 @@ Cell *evalSubr(Cell *args, Cell *env)
 {
   Cell *evalArg= car(args);
   Cell *evalEnv= cadr(args);
+  GC_WATCH(args);
+  GC_WATCH(env);
   GC_PROTECT(args);
   GC_PROTECT(env);
   evalArg= eval(evalArg, evalEnv ? evalEnv : env);
@@ -730,11 +786,14 @@ access(ptr)
 
 #undef access
 
+#ifndef CC65
 #include <dlfcn.h>
 
 void *rtldDefault= 0;
 
 Cell *dlsymSubr(Cell *args, Cell *env)	{ return stringP(car(args)) ? mkPsubr(dlsym(rtldDefault, string(car(args)))) : 0; }
+#endif
+
 Cell *fsubrSubr(Cell *args, Cell *env)	{ return psubrP (car(args)) ? mkFsubr(psubr(car(args))) : 0; }
 Cell *subrSubr (Cell *args, Cell *env)	{ return psubrP (car(args)) ? mkSubr (psubr(car(args))) : 0; }
 
@@ -744,6 +803,8 @@ int vFlag= 0;
 Cell *repl(FILE *in)
 {
   Cell *expr= 0, *value= 0;
+  GC_WATCH(expr);
+  GC_WATCH(value);
   GC_PROTECT(expr);
   GC_PROTECT(value);
   while (!feof(in)) {
@@ -775,8 +836,8 @@ void markFunction(void *ptr)
   case Cons:
   case Expr:
   case Fexpr:
-    if (cell->mCons.a) GC_mark(cell->mCons.a);
-    if (cell->mCons.d) GC_mark(cell->mCons.d);
+    if (cell->data.mCons.a) GC_mark(cell->data.mCons.a);
+    if (cell->data.mCons.d) GC_mark(cell->data.mCons.d);
     return;
   default:
     fatal("unknown tag");
@@ -797,7 +858,8 @@ void freeFunction(void *ptr)
 int main(int argc, char **argv)
 {
   int i;
-
+  GC_WATCH(globals);
+  GC_WATCH(interns);
 #if BDWGC
   GC_INIT();
 #else
@@ -820,7 +882,9 @@ int main(int argc, char **argv)
   initReaders(readAlpha,  ".");
   initReaders(readSemi,   ";");
 
+#ifndef CC65
   rtldDefault= dlopen(0, RTLD_NOW | RTLD_GLOBAL);
+#endif
 
   _S_t	     = intern("t");
   _S_quote   = intern("quote");
@@ -829,7 +893,9 @@ int main(int argc, char **argv)
   _S_uquotes = intern("unquote-splicing");
 
   globals= cons(cons(intern("t"	),	   _S_t			 ), globals);
+#ifndef CC65
   globals= cons(cons(intern("dlsym"	), mkSubr (dlsymSubr	)), globals);
+#endif
   globals= cons(cons(intern("fsubr" 	), mkSubr (fsubrSubr 	)), globals);
   globals= cons(cons(intern("subr" 	), mkSubr (subrSubr 	)), globals);
   globals= cons(cons(intern("define" 	), mkFsubr(defineFsubr 	)), globals);

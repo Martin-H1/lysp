@@ -9,7 +9,8 @@ struct GC_StackRoot
   struct GC_StackRoot *next;
 };
 
-#define GC_PROTECT(V)		struct GC_StackRoot _sr_##V;  _sr_##V.root= (void *)&V;  GC_push_root(&_sr_##V)
+#define GC_WATCH(V)		struct GC_StackRoot _sr_##V
+#define GC_PROTECT(V)	        _sr_##V.root= (void *)&V;  GC_push_root(&_sr_##V)
 #define GC_UNPROTECT(V)		GC_pop_root(&_sr_##V)
 
 #define GC_INIT()
@@ -28,12 +29,17 @@ size_t 	GC_count_bytes(void);
 
 extern struct GC_StackRoot *GC_stack_roots;
 
+#ifndef CC65
 static inline void GC_push_root(struct GC_StackRoot *sr)
 {
   sr->next= GC_stack_roots;
   GC_stack_roots= sr;
 }
+#else
+void GC_push_root(struct GC_StackRoot *sr);
+#endif
 
+#ifndef CC65
 static inline void GC_pop_root(struct GC_StackRoot *sr)
 {
 #if 1
@@ -44,6 +50,9 @@ static inline void GC_pop_root(struct GC_StackRoot *sr)
     GC_stack_roots= GC_stack_roots->next;
 #endif
 }
+#else
+void GC_pop_root(struct GC_StackRoot *sr);
+#endif
 
 typedef void (*GC_mark_function_t)(void *ptr);
 extern GC_mark_function_t GC_mark_function;
