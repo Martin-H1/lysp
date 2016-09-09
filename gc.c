@@ -18,12 +18,12 @@
 ** Last edited: 2008-10-20 19:45:22 by piumarta on ubuntu.piumarta.com
 */
 
-#include "gc.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+
+#include "gc.h"
 
 #define ALIGN		sizeof(long)
 #define QUANTUM		32768
@@ -39,17 +39,17 @@ typedef struct _gcheader
       unsigned int	used : 1;
       unsigned int	atom : 1;
       unsigned int	mark : 1;
-    };
-  };
+    } bitvec ;
+  } data ;
   struct _gcheader *prev;
   struct _gcheader *next;
   size_t	    size;
 } gcheader;
 
-static inline void *hdr2ptr(gcheader *hdr)	{ return (void *)(hdr + 1); }
-static inline gcheader *ptr2hdr(void *ptr)	{ return (gcheader *)ptr - 1; }
+void *hdr2ptr(gcheader *hdr)	{ return (void *)(hdr + 1); }
+gcheader *ptr2hdr(void *ptr)	{ return (gcheader *)ptr - 1; }
 
-static gcheader  gcbase= { { -1 }, &gcbase, &gcbase, 0 };
+static gcheader  gcbase = { { -1 }, &gcbase, &gcbase, 0 };
 static gcheader *gcnext= &gcbase;
 
 static int gcCount= ALLOCS_PER_GC;
@@ -80,13 +80,13 @@ void *GC_malloc(size_t lbs)
 #if VERBOSE > 2
     printf("? %2d %p <- %p -> %p = %x\n", hdr->flags, hdr->prev, hdr, hdr->next, hdr->size);
 #endif
-    if ((!hdr->used) && (hdr->size >= lbs))
+    if ((!hdr->data.bitvec.used) && (hdr->size >= lbs))
       {
 	void *mem;
 	if (hdr->size >= lbs + sizeof(gcheader) + ALIGN)
 	  {
 	    gcheader *ins= (gcheader *)(hdr2ptr(hdr) + lbs);
-	    ins->flags= 0;
+	    ins->data.flags= 0;
 	    ins->prev= hdr;
 	    ins->next= hdr->next;
 	    ins->size= hdr->size - lbs - sizeof(gcheader);
@@ -94,7 +94,7 @@ void *GC_malloc(size_t lbs)
 	    hdr->next= ins;
 	    hdr->size= lbs;
 	  }
-	hdr->used= 1;
+	hdr->data.bitvec.used= 1;
 	gcnext= hdr->next;
 #if VERBOSE > 2
 	printf("MALLOC %p\n", hdr);
@@ -112,7 +112,7 @@ void *GC_malloc(size_t lbs)
     hdr= (gcheader *)sbrk(incr);
     if (hdr != (gcheader *)-1)
       {
-	hdr->flags= 0;
+	hdr->data.flags= 0;
 	hdr->next= &gcbase;
 	hdr->prev= gcbase.prev;
 	hdr->prev->next= hdr;
@@ -131,7 +131,7 @@ void *GC_malloc(size_t lbs)
 void *GC_malloc_atomic(size_t lbs)
 {
   void *mem= GC_malloc(lbs);
-  ptr2hdr(mem)->atom= 1;
+  ptr2hdr(mem)->data.bitvec.atom= 1;
   return mem;
 }
 
@@ -142,7 +142,7 @@ void *GC_realloc(void *ptr, size_t lbs)
   if (lbs <= hdr->size) return ptr;
   mem= GC_malloc(lbs);
   memcpy(mem, ptr, hdr->size);
-  ptr2hdr(mem)->atom= hdr->atom;
+  ptr2hdr(mem)->data.bitvec.atom= hdr->data.bitvec.atom;
   GC_free(ptr);
   return mem;
 }
@@ -152,8 +152,8 @@ gcheader *GC_freeHeader(gcheader *hdr)
 #if VERBOSE > 1
   printf("FREE %p\n", hdr);
 #endif
-  hdr->flags= 0;
-  if ((!hdr->prev->flags) && (hdr2ptr(hdr->prev) + hdr->prev->size == hdr))
+  hdr->data.flags= 0;
+  if ((!hdr->prev->data.flags) && (hdr2ptr(hdr->prev) + hdr->prev->size == hdr))
     {
 #if VERBOSE > 2
       printf("COALESCE PREV %p\n", hdr->prev);
@@ -163,7 +163,7 @@ gcheader *GC_freeHeader(gcheader *hdr)
       hdr->prev->size += sizeof(gcheader) + hdr->size;
       hdr= hdr->prev;
     }
-  if ((!hdr->next->used) && (hdr2ptr(hdr) + hdr->size == hdr->next))
+  if ((!hdr->next->data.bitvec.used) && (hdr2ptr(hdr) + hdr->size == hdr->next))
     {
 #if VERBOSE > 2
       printf("COALESCE NEXT %p\n", hdr->next);
@@ -176,7 +176,7 @@ gcheader *GC_freeHeader(gcheader *hdr)
   {
     gcheader *h= &gcbase;
     do { 
-      printf("  %2d %p <- %p -> %p = %x\n", h->flags, h->prev, h, h->next, h->size);
+      printf("  %2d %p <- %p -> %p = %x\n", h->data.flags, h->prev, h, h->next, h->size);
       h= h->next;
     } while (h != &gcbase);
   }
@@ -209,11 +209,11 @@ void GC_mark(void *ptr)
 {
   gcheader *hdr= ptr2hdr(ptr);
 #if VERBOSE > 2
-  printf("mark? %p %d\n", hdr, hdr->flags);
+  printf("mark? %p %d\n", hdr, hdr->data.flags);
 #endif
-  if (!hdr->mark) {
-    hdr->mark= 1;
-    if (!hdr->atom)
+  if (!hdr->data.bitvec.mark) {
+    hdr->data.bitvec.mark= 1;
+    if (!hdr->data.bitvec.atom)
       GC_mark_function(ptr);
   }
 }
@@ -225,12 +225,12 @@ void GC_sweep(void)
   gcheader *hdr= gcbase.next;
   do {
 #if VERBOSE > 2
-    printf("sweep? %p %d\n", hdr, hdr->flags);
+    printf("sweep? %p %d\n", hdr, hdr->data.flags);
 #endif
-    if (hdr->flags)
+    if (hdr->data.flags)
       {
-	if (hdr->mark)
-	  hdr->mark= 0;
+	if (hdr->data.bitvec.mark)
+	  hdr->data.bitvec.mark= 0;
 	else {
 	  if (GC_free_function) GC_free_function(hdr2ptr(hdr));
 	  hdr= GC_freeHeader(hdr);
@@ -283,7 +283,7 @@ size_t GC_count_objects(void)
   gcheader *hdr= gcbase.next;
   size_t count= 0;
   do {
-    if (hdr->flags)
+    if (hdr->data.flags)
       ++count;
     hdr= hdr->next;
   } while (hdr != &gcbase);
@@ -295,7 +295,7 @@ size_t GC_count_bytes(void)
   gcheader *hdr= gcbase.next;
   size_t count= 0;
   do {
-    if (hdr->flags)
+    if (hdr->data.flags)
       count += hdr->size;
     hdr= hdr->next;
   } while (hdr != &gcbase);
