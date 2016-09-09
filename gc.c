@@ -46,7 +46,7 @@ typedef struct _gcheader
   size_t	    size;
 } gcheader;
 
-void *hdr2ptr(gcheader *hdr)	{ return (void *)(hdr + 1); }
+char *hdr2ptr(gcheader *hdr)	{ return (void *)(hdr + 1); }
 gcheader *ptr2hdr(void *ptr)	{ return (gcheader *)ptr - 1; }
 
 static gcheader  gcbase = { { -1 }, &gcbase, &gcbase, 0 };
@@ -153,7 +153,8 @@ gcheader *GC_freeHeader(gcheader *hdr)
   printf("FREE %p\n", hdr);
 #endif
   hdr->data.flags= 0;
-  if ((!hdr->prev->data.flags) && (hdr2ptr(hdr->prev) + hdr->prev->size == hdr))
+  if ((!hdr->prev->data.flags) &&
+     ((gcheader *)(hdr2ptr(hdr->prev) + hdr->prev->size) == hdr))
     {
 #if VERBOSE > 2
       printf("COALESCE PREV %p\n", hdr->prev);
@@ -163,7 +164,8 @@ gcheader *GC_freeHeader(gcheader *hdr)
       hdr->prev->size += sizeof(gcheader) + hdr->size;
       hdr= hdr->prev;
     }
-  if ((!hdr->next->data.bitvec.used) && (hdr2ptr(hdr) + hdr->size == hdr->next))
+  if ((!hdr->next->data.bitvec.used) &&
+      ((gcheader *)(hdr2ptr(hdr) + hdr->size) == hdr->next))
     {
 #if VERBOSE > 2
       printf("COALESCE NEXT %p\n", hdr->next);
@@ -193,7 +195,7 @@ void GC_default_mark_function(void *ptr)
 {
   gcheader *hdr= ptr2hdr(ptr);
   void	  **pos= ptr;
-  void	  **lim= hdr2ptr(hdr) + hdr->size - sizeof(void *);
+  void	  **lim= (void*)(hdr2ptr(hdr) + hdr->size - sizeof(void *));
   while (pos <= lim)
     {
       void *field= *pos;
