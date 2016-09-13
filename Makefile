@@ -6,7 +6,7 @@ LDLIBS  = -rdynamic
 all : lysp gclysp
 
 lysp : lysp.c gc.c
-	$(CC) $(CFLAGS)  -DBDWGC=0 -o $@ lysp.c gc.c $(LDLIBS) -ldl
+	$(CC) $(CFLAGS)  -DBDWGC=0 -o $@ lysp.c gc.c platform.c $(LDLIBS) -ldl
 	size $@
 
 olysp: lysp.c gc.c
