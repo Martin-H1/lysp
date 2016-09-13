@@ -18,12 +18,12 @@
 ** Last edited: 2008-10-20 19:45:22 by piumarta on ubuntu.piumarta.com
 */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 
 #include "gc.h"
+#include "platform.h"
 
 #define ALIGN		sizeof(long)
 #define QUANTUM		32768
@@ -64,7 +64,7 @@ void *GC_malloc(size_t lbs)
   org= hdr= gcnext;
   lbs= (lbs + ALIGN-1) & ~(ALIGN-1);
 #if VERBOSE > 1
-  printf("malloc %d\n", lbs);
+  printfNum("malloc %d\n", lbs);
 #endif
  again:
 #if VERBOSE > 3
@@ -124,7 +124,7 @@ void *GC_malloc(size_t lbs)
 	goto again;
       }
   }
-  printf("out of memory\n");
+  printStr("out of memory\n");
   return 0;
 }
 
