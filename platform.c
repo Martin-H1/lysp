@@ -37,42 +37,42 @@ void printfNum(const char * fmt, long num)
   printf(fmt, num);
 }
 
-void printPtr(void * output, const char * fmt, void * ptr)
+void printfPtr(const char * fmt, void * ptr)
 {
-  printf(output, fmt, ptr);
+  printf(fmt, ptr);
 }
 
-void fprintStr(void * output, const char * str)
+void fprintStr(FILEPTR output, const char * str)
 {
   fprintf((FILE*)output, str, 0);
 }
 
-void fprintfChar(void * output, const char * fmt, char c)
+void fprintfChar(FILEPTR output, const char * fmt, char c)
 {
   fprintf((FILE*)output, fmt, c);
 }
 
-void fprintfStr(void * output, const char * fmt, const char * str)
+void fprintfStr(FILEPTR output, const char * fmt, const char * str)
 {
   fprintf((FILE*)output, fmt, str);
 }
 
-void fprintfNum(void * output, const char * fmt, long num)
+void fprintfNum(FILEPTR output, const char * fmt, long num)
 {
   fprintf((FILE*)output, fmt, num);
 }
 
-void fprintfPtr(void * output, const char * fmt, void * ptr)
+void fprintfPtr(FILEPTR output, const char * fmt, void * ptr)
 {
   fprintf((FILE*)output, fmt, ptr);
 }
 
-char getChar(void * input)
+char getChar(FILEPTR input)
 {
   return getc((FILE *)input);
 }
 
-void ungetChar(char c, void *input)
+void ungetChar(char c, FILEPTR input)
 {
   ungetc(c, (FILE *)input);
 }

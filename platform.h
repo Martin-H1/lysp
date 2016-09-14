@@ -13,14 +13,16 @@ void printfNum(const char *, long);
 void printfNum(const char *, long);
 void printfPtr(const char *, void *);
 
-void fprintStr(void *, const char *);
-void fprintfChar(void *, const char *, char);
-void fprintfStr(void *, const char *, const char *);
-void fprintfNum(void *, const char *, long);
-void fprintfPtr(void *, const char *, void *);
+typedef void * FILEPTR;
 
-char getChar(void *);
-void ungetChar(char, void *);
+void fprintStr(FILEPTR, const char *);
+void fprintfChar(FILEPTR, const char *, char);
+void fprintfStr(FILEPTR, const char *, const char *);
+void fprintfNum(FILEPTR, const char *, long);
+void fprintfPtr(FILEPTR, const char *, void *);
+
+char getChar(FILEPTR);
+void ungetChar(char, FILEPTR);
 
 void* heapAlloc(long);
 
