@@ -7,15 +7,17 @@
  * file system or stdio. So these are the bare minimum set off requirements.
  */
 void printStr(const char *);
-void printfStr(const char *, char * );
-void printfNum(const char *, long );
-void printfNum(const char *, long );
-void printfPtr(const char *, void * );
+void printfChar(const char *, char);
+void printfStr(const char *, const char *);
+void printfNum(const char *, long);
+void printfNum(const char *, long);
+void printfPtr(const char *, void *);
 
 void fprintStr(void *, const char *);
-void fprintfStr(void *, const char *, char * );
-void fprintfNum(void *, const char *, long );
-void fprintfPtr(void *, const char *, void * );
+void fprintfChar(void *, const char *, char);
+void fprintfStr(void *, const char *, const char *);
+void fprintfNum(void *, const char *, long);
+void fprintfPtr(void *, const char *, void *);
 
 char getChar(void *);
 void ungetChar(char, void *);

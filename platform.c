@@ -27,7 +27,7 @@ void printStr(const char * str)
   printf(str, 0);
 }
 
-void printfStr(const char * fmt, char * str)
+void printfStr(const char * fmt, const char * str)
 {
   printf(fmt, str);
 }
@@ -47,7 +47,12 @@ void fprintStr(void * output, const char * str)
   fprintf((FILE*)output, str, 0);
 }
 
-void fprintfStr(void * output, const char * fmt, char * str)
+void fprintfChar(void * output, const char * fmt, char c)
+{
+  fprintf((FILE*)output, fmt, c);
+}
+
+void fprintfStr(void * output, const char * fmt, const char * str)
 {
   fprintf((FILE*)output, fmt, str);
 }
@@ -57,7 +62,7 @@ void fprintfNum(void * output, const char * fmt, long num)
   fprintf((FILE*)output, fmt, num);
 }
 
-void fprintPtr(void * output, const char * fmt, void * ptr)
+void fprintfPtr(void * output, const char * fmt, void * ptr)
 {
   fprintf((FILE*)output, fmt, ptr);
 }

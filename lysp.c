@@ -49,6 +49,8 @@
 #define isatty(V) 1
 #endif
 
+#include "platform.h"
+
 static void fatal(const char *fmt, ...)
 {
   va_list ap;
@@ -164,32 +166,32 @@ Cell *assq(Cell *key, Cell *list)
 
 Cell *print(Cell *self, FILE *stream)
 {
-  if (!self) fprintf(stream, "nil");
+  if (!self) fprintStr(stream, "nil");
   else
     switch (self->mTag) {
-    case Number:	fprintf(stream, "%ld",        number(self));	      	    	break;
-    case String:	fprintf(stream, "\"%s\"",     string(self));	      	    	break;
-    case Symbol:	fprintf(stream, "%s",         symbol(self));	      	    	break;
-    case Subr:		fprintf(stream, "subr<%p>",   subr(self));	      	    	break;
-    case Fsubr:		fprintf(stream, "fsubr<%p>",  fsubr(self));	      	    	break;
-    case Expr:		fprintf(stream, "(lambda ");  print(expr(self), stream);  fprintf(stream, ")");	break;
-    case Fexpr:		fprintf(stream, "(flambda "); print(fexpr(self), stream); fprintf(stream, ")");	break;
-    case Psubr:		fprintf(stream, "psubr<%p>",  psubr(self));			break;
+    case Number:	fprintfNum(stream, "%ld",        number(self));	      	    	break;
+    case String:	fprintfStr(stream, "\"%s\"",     string(self));	      	    	break;
+    case Symbol:	fprintfStr(stream, "%s",         symbol(self));	      	    	break;
+    case Subr:		fprintfPtr(stream, "subr<%p>",   subr(self));	      	    	break;
+    case Fsubr:		fprintfPtr(stream, "fsubr<%p>",  fsubr(self));	      	    	break;
+    case Expr:		fprintStr(stream, "(lambda ");  print(expr(self), stream);  fprintStr(stream, ")");	break;
+    case Fexpr:		fprintStr(stream, "(flambda "); print(fexpr(self), stream); fprintStr(stream, ")");	break;
+    case Psubr:		fprintfPtr(stream, "psubr<%p>",  psubr(self));			break;
     case Cons: {
-      fprintf(stream, "(");
+      fprintStr(stream, "(");
       while (self && consP(self)) {
 	print(car(self), stream);
 	if ((self= cdr(self))) fputc(' ', stream);
       }
       if (self) {
-	fprintf(stream, ". ");
+	fprintStr(stream, ". ");
 	print(self, stream);
       }
-      fprintf(stream, ")");
+      fprintStr(stream, ")");
       break;
     }
     default:
-      fprintf(stream, "?%p", self);
+      fprintfPtr(stream, "?%p", self);
       break;
     }
   return self;
@@ -198,7 +200,7 @@ Cell *print(Cell *self, FILE *stream)
 Cell *println(Cell *self, FILE *stream)
 {
   print(self, stream);
-  fprintf(stream, "\n");
+  fprintStr(stream, "\n");
   return self;
 }
 
@@ -222,9 +224,9 @@ Reader readers[256];
 
 Cell *readIllegal(int c, FILE *in)
 {
-  fprintf(stderr, "ignoring illegal character ");
-  fprintf(stderr, (isprint(c) ? "%c" : "0x%02x"), c);
-  fprintf(stderr, "\n");
+  fprintStr(stderr, "ignoring illegal character ");
+  fprintfChar(stderr, (isprint(c) ? "%c" : "0x%02x"), c);
+  fprintStr(stderr, "\n");
   return NULL;
 }
 
@@ -241,16 +243,16 @@ Cell *readDigit(int c, FILE *in)
   long number = 0;
   buf[index++]= c;
   if ('0' == c) {
-    if (strchr("xX", (c= getc(in))))	buf[index++]= c;
-    else				ungetc(c, in);
+    if (strchr("xX", (c= getChar(in))))	buf[index++]= c;
+    else				ungetChar(c, in);
   }
-  while ((c= getc(in)) > 0 && (readDigit == readers[c] || readAlpha == readers[c])) buf[index++]= c;
-  ungetc(c, in);
+  while ((c= getChar(in)) > 0 && (readDigit == readers[c] || readAlpha == readers[c])) buf[index++]= c;
+  ungetChar(c, in);
   buf[index]= '\0';
   errno= 0;
   number= strtol(buf, &endptr, 0);
   if ((ERANGE == errno) || (errno && !number)) perror(buf);
-  if (*endptr != '\0') fprintf(stderr, "%s: invalid digits in number\n", buf);
+  if (*endptr != '\0') fprintfStr(stderr, "%s: invalid digits in number\n", buf);
   return mkNumber(number);
 }
 
@@ -259,16 +261,16 @@ Cell *readAlpha(int c, FILE *in)
   char buf[MAX_BUF];
   int index= 0;
   buf[index++]= c;
-  while ((c= getc(in)) > 0 && (readAlpha == readers[c] || readDigit == readers[c] || readSign == readers[c])) buf[index++]= c;
-  ungetc(c, in);
+  while ((c= getChar(in)) > 0 && (readAlpha == readers[c] || readDigit == readers[c] || readSign == readers[c])) buf[index++]= c;
+  ungetChar(c, in);
   buf[index]= '\0';
   return intern(buf);
 }
 
 Cell *readSign(int c, FILE *in)
 {
-  int d= getc(in);
-  ungetc(d, in);
+  int d= getChar(in);
+  ungetChar(d, in);
   return (d > 0 && readers[d] == &readDigit) ? readDigit(c, in) : readAlpha(c, in);
 }
 
@@ -277,7 +279,7 @@ Cell *readString(int d, FILE *in)
   char buf[MAX_BUF];
   int index= 0;
   int c;
-  while ((c= getc(in)) > 0 && c != d) if ('\\' == (buf[index++]= c)) buf[index++]= getc(in);
+  while ((c= getChar(in)) > 0 && c != d) if ('\\' == (buf[index++]= c)) buf[index++]= getChar(in);
   if (c != d) fatal("EOF in string");
   buf[index]= '\0';
   return mkString(strdup(buf));
@@ -312,8 +314,8 @@ Cell *readUquote(int c, FILE *in)
   Cell *cell = 0;
   int splice= 0;
   GC_WATCH(cell);
-  if ('@' == (c= getc(in))) splice= 1;
-  else ungetc(c, in);
+  if ('@' == (c= getChar(in))) splice= 1;
+  else ungetChar(c, in);
   cell= readFile(in);
   if (CEOF == cell) fatal("EOF in quasiquoted literal");
   GC_PROTECT(cell);
@@ -338,13 +340,13 @@ Cell *readList(int d, FILE *in)
   case '{': d= '}'; break;
   }
   for (;;) {
-    while (isspace((c= getc(in))));
+    while (isspace((c= getChar(in))));
     if (c == d) break;
     if (c == ')' || c == ']' || c == '}') fatal("mismatched parentheses");
     if (c == '.')
       rplacd(tail, readFile(in));
     else {
-      ungetc(c, in);
+      ungetChar(c, in);
       cell= readFile(in);
       if (feof(in)) fatal("EOF in list");
       tail= rplacd(tail, cons(cell, 0));
@@ -365,7 +367,7 @@ Cell *readList(int d, FILE *in)
 
 Cell *readSemi(int c, FILE *in)
 {
-  while ((c= getc(in)) && (c != '\n') && (c != '\r'));
+  while ((c= getChar(in)) && (c != '\n') && (c != '\r'));
   return 0;
 }
 
@@ -374,7 +376,7 @@ Cell *readFile(FILE *in)
   int c;
   Cell *cell;
   do {
-    while (isspace(c= getc(in)));
+    while (isspace(c= getChar(in)));
     if (c < 0) return (Cell *)-1;
     cell= readers[c](c, in);
   } while (!cell);
@@ -389,7 +391,7 @@ static void initReaders(Reader r, const char *chars)
 
 Cell *undefined(Cell *sym)
 {
-  fprintf(stderr, "undefined: %s\n", symbol(sym));
+  fprintfStr(stderr, "undefined: %s\n", symbol(sym));
   return 0;
 }
 
@@ -501,7 +503,7 @@ Cell *apply(Cell *fn, Cell *args, Cell *env)
     }
     default:	break;
     }
-  fprintf(stderr, "cannot apply: ");
+  fprintStr(stderr, "cannot apply: ");
   println(fn, stderr);
   return 0;
 }
@@ -806,7 +808,7 @@ Cell *repl(FILE *in)
   GC_PROTECT(value);
   while (!feof(in)) {
     if (isatty(fileno(in))) {
-      printf("> ");
+      printStr("> ");
       fflush(stdout);
     }
     expr= readFile(in);
@@ -815,7 +817,7 @@ Cell *repl(FILE *in)
     if (expr) {
       value= eval(expr, globals);
       if (isatty(fileno(in))) println(value, stderr);
-      if (vFlag) { fprintf(stderr, "==> ");  println(value, stderr); }
+      if (vFlag) { fprintStr(stderr, "==> ");  println(value, stderr); }
     }
   }
   GC_UNPROTECT(expr);
