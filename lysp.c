@@ -164,7 +164,7 @@ Cell *assq(Cell *key, Cell *list)
   return 0;
 }
 
-Cell *print(Cell *self, FILE *stream)
+Cell *print(Cell *self, FILEPTR stream)
 {
   if (!self) fprintStr(stream, "nil");
   else
@@ -197,7 +197,7 @@ Cell *print(Cell *self, FILE *stream)
   return self;
 }
 
-Cell *println(Cell *self, FILE *stream)
+Cell *println(Cell *self, FILEPTR stream)
 {
   print(self, stream);
   fprintStr(stream, "\n");
@@ -212,17 +212,17 @@ Cell *_S_uquotes = 0;
 Cell *syntaxTable= 0;
 Cell *globals= 0;
 
-typedef Cell *(*Reader)(int, FILE *);
+typedef Cell *(*Reader)(int, FILEPTR);
 
-Cell *readFile(FILE *in);
-Cell *readAlpha(int c, FILE *in);
-Cell *readSign(int c, FILE *in);
+Cell *readFile(FILEPTR in);
+Cell *readAlpha(int c, FILEPTR in);
+Cell *readSign(int c, FILEPTR in);
 
 Reader readers[256];
 
 #define CEOF	((Cell *)-1)
 
-Cell *readIllegal(int c, FILE *in)
+Cell *readIllegal(int c, FILEPTR in)
 {
   fprintStr(stderr, "ignoring illegal character ");
   fprintfChar(stderr, (isprint(c) ? "%c" : "0x%02x"), c);
@@ -230,12 +230,12 @@ Cell *readIllegal(int c, FILE *in)
   return NULL;
 }
 
-Cell *readBlank(int c, FILE *in)
+Cell *readBlank(int c, FILEPTR in)
 {
   return NULL;
 }
 
-Cell *readDigit(int c, FILE *in)
+Cell *readDigit(int c, FILEPTR in)
 {
   char buf[MAX_BUF];
   int index = 0;
@@ -256,7 +256,7 @@ Cell *readDigit(int c, FILE *in)
   return mkNumber(number);
 }
 
-Cell *readAlpha(int c, FILE *in)
+Cell *readAlpha(int c, FILEPTR in)
 {
   char buf[MAX_BUF];
   int index= 0;
@@ -267,14 +267,14 @@ Cell *readAlpha(int c, FILE *in)
   return intern(buf);
 }
 
-Cell *readSign(int c, FILE *in)
+Cell *readSign(int c, FILEPTR in)
 {
   int d= getChar(in);
   ungetChar(d, in);
   return (d > 0 && readers[d] == &readDigit) ? readDigit(c, in) : readAlpha(c, in);
 }
 
-Cell *readString(int d, FILE *in)
+Cell *readString(int d, FILEPTR in)
 {
   char buf[MAX_BUF];
   int index= 0;
@@ -285,7 +285,7 @@ Cell *readString(int d, FILE *in)
   return mkString(strdup(buf));
 }
 
-Cell *readQuote(int c, FILE *in)
+Cell *readQuote(int c, FILEPTR in)
 {
   Cell *cell= readFile(in);
   GC_WATCH(cell);
@@ -297,7 +297,7 @@ Cell *readQuote(int c, FILE *in)
   return cell;
 }
 
-Cell *readQquote(int c, FILE *in)
+Cell *readQquote(int c, FILEPTR in)
 {
   Cell *cell= readFile(in);
   GC_WATCH(cell);
@@ -309,7 +309,7 @@ Cell *readQquote(int c, FILE *in)
   return cell;
 }
 
-Cell *readUquote(int c, FILE *in)
+Cell *readUquote(int c, FILEPTR in)
 {
   Cell *cell = 0;
   int splice= 0;
@@ -325,7 +325,7 @@ Cell *readUquote(int c, FILE *in)
   return cell;
 }
 
-Cell *readList(int d, FILE *in)
+Cell *readList(int d, FILEPTR in)
 {
   int c;
   Cell *head, *tail, *cell= 0;
@@ -365,13 +365,13 @@ Cell *readList(int d, FILE *in)
   return head ? head : (Cell *)-1;
 }
 
-Cell *readSemi(int c, FILE *in)
+Cell *readSemi(int c, FILEPTR in)
 {
   while ((c= getChar(in)) && (c != '\n') && (c != '\r'));
   return 0;
 }
 
-Cell *readFile(FILE *in)
+Cell *readFile(FILEPTR in)
 {
   int c;
   Cell *cell;
@@ -799,7 +799,7 @@ Cell *subrSubr (Cell *args, Cell *env)	{ return psubrP (car(args)) ? mkSubr (psu
 int xFlag= 0;
 int vFlag= 0;
 
-Cell *repl(FILE *in)
+Cell *repl(FILEPTR in)
 {
   Cell *expr= 0, *value= 0;
   GC_WATCH(expr);
@@ -911,7 +911,7 @@ int main(int argc, char **argv)
       else if (!strcmp(*argv, "-x")) xFlag= 1;
       else if (!strcmp(*argv, "-" )) repl(stdin);
       else {
-	FILE *in= fopen(*argv, "r");
+	FILEPTR in= fopen(*argv, "r");
 	if (!in) perror(*argv);
 	else {
 	  repl(in);
