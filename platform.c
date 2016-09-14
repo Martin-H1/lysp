@@ -20,6 +20,7 @@
 #include "platform.h"
 
 #include <stdio.h>
+#include <unistd.h>
 
 void printStr(const char * str)
 {
@@ -69,4 +70,9 @@ char getChar(void * input)
 void ungetChar(char c, void *input)
 {
   ungetc(c, (FILE *)input);
+}
+
+void* heapAlloc(long incr)
+{
+  return sbrk(incr);
 }

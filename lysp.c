@@ -26,9 +26,6 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <errno.h>
-#ifndef CC65
-#include <sys/errno.h>
-#endif
 #include <assert.h>
 
 #ifndef BDWGC

@@ -20,4 +20,6 @@ void fprintfPtr(void *, const char *, void * );
 char getChar(void *);
 void ungetChar(char, void *);
 
+void* heapAlloc(long);
+
 #endif /* _PLATFORM_H_ */

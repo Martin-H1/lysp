@@ -19,7 +19,6 @@
 */
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 
 #include "gc.h"
@@ -109,7 +108,7 @@ void *GC_malloc(size_t lbs)
     size_t incr= QUANTUM;
     size_t req= sizeof(gcheader) + lbs;
     while (incr <= req) incr *= 2;
-    hdr= (gcheader *)sbrk(incr);
+    hdr = (gcheader *)heapAlloc(incr);
     if (hdr != (gcheader *)-1)
       {
 	hdr->data.flags= 0;
