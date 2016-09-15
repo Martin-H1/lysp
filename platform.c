@@ -22,6 +22,11 @@
 #include <stdio.h>
 #include <unistd.h>
 
+void printError(const char * str)
+{
+  perror(str);
+}
+
 void printStr(const char * str)
 {
   printf(str, 0);
@@ -84,7 +89,7 @@ void fputChar(char c, FILEPTR output)
 
 void putChar(char c)
 {
-  putchar(c)
+  putchar(c);
 }
 
 void* heapAlloc(long incr)

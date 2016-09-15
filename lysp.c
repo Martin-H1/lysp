@@ -43,14 +43,11 @@
 
 #include "platform.h"
 
-static void fatal(const char *fmt, ...)
+static void fatal(const char *mess)
 {
-  va_list ap;
-  va_start(ap, fmt);
   fprintStr(stderr, "\nError: ");
-  vfprintf(stderr, fmt, ap);
+  fprintStr(stderr, mess);
   fprintStr(stderr, "\n");
-  va_end(ap);
   exit(1);
 }
 
@@ -243,7 +240,7 @@ Cell *readDigit(int c, FILEPTR in)
   buf[index]= '\0';
   errno= 0;
   number= strtol(buf, &endptr, 0);
-  if ((ERANGE == errno) || (errno && !number)) perror(buf);
+  if ((ERANGE == errno) || (errno && !number)) printError(buf);
   if (*endptr != '\0') fprintfStr(stderr, "%s: invalid digits in number\n", buf);
   return mkNumber(number);
 }

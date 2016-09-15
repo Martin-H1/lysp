@@ -14,6 +14,7 @@
 #define MAX_BUF 128
 #endif
 
+void printError(const char *);
 void printStr(const char *);
 void printfChar(const char *, char);
 void printfStr(const char *, const char *);
