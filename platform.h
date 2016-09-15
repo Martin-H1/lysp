@@ -14,6 +14,8 @@
 #define MAX_BUF 128
 #endif
 
+void platformInit();
+
 void printError(const char *);
 void printStr(const char *);
 void printfChar(const char *, char);
@@ -23,6 +25,15 @@ void printfNum(const char *, long);
 void printfPtr(const char *, void *);
 
 typedef void * FILEPTR;
+
+extern FILEPTR STDERR;
+extern FILEPTR STDIN;
+extern FILEPTR STDOUT;
+
+FILEPTR FOPEN(const char *, const char *);
+int FCLOSE(FILEPTR);
+int FEOF(FILEPTR);
+int FFLUSH(FILEPTR);
 
 void fprintStr(FILEPTR, const char *);
 void fprintfChar(FILEPTR, const char *, char);

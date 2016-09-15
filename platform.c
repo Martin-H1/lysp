@@ -22,6 +22,17 @@
 #include <stdio.h>
 #include <unistd.h>
 
+FILEPTR STDERR;
+FILEPTR STDIN;
+FILEPTR STDOUT;
+
+void platformInit()
+{
+  STDERR = stderr;
+  STDIN = stdin;
+  STDOUT = stdout;
+}
+
 void printError(const char * str)
 {
   perror(str);
@@ -45,6 +56,26 @@ void printfNum(const char * fmt, long num)
 void printfPtr(const char * fmt, void * ptr)
 {
   printf(fmt, ptr);
+}
+
+FILEPTR FOPEN(const char * name, const char * mode)
+{
+  return fopen(name, mode);
+}
+
+int FCLOSE(FILEPTR stream)
+{
+  return fclose(stream);
+}
+
+int FEOF(FILEPTR stream)
+{
+  return feof(stream);
+}
+
+int FFLUSH(FILEPTR stream)
+{
+  return fflush(stream);
 }
 
 void fprintStr(FILEPTR output, const char * str)

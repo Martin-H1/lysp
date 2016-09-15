@@ -19,7 +19,7 @@
 ** Last edited: 2008-10-20 19:42:24 by piumarta on ubuntu.piumarta.com
 */
 
-#include <stdio.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -45,9 +45,9 @@
 
 static void fatal(const char *mess)
 {
-  fprintStr(stderr, "\nError: ");
-  fprintStr(stderr, mess);
-  fprintStr(stderr, "\n");
+  fprintStr(STDERR, "\nError: ");
+  fprintStr(STDERR, mess);
+  fprintStr(STDERR, "\n");
   exit(1);
 }
 
@@ -213,9 +213,9 @@ Reader readers[256];
 
 Cell *readIllegal(int c, FILEPTR in)
 {
-  fprintStr(stderr, "ignoring illegal character ");
-  fprintfChar(stderr, (isprint(c) ? "%c" : "0x%02x"), c);
-  fprintStr(stderr, "\n");
+  fprintStr(STDERR, "ignoring illegal character ");
+  fprintfChar(STDERR, (isprint(c) ? "%c" : "0x%02x"), c);
+  fprintStr(STDERR, "\n");
   return NULL;
 }
 
@@ -241,7 +241,7 @@ Cell *readDigit(int c, FILEPTR in)
   errno= 0;
   number= strtol(buf, &endptr, 0);
   if ((ERANGE == errno) || (errno && !number)) printError(buf);
-  if (*endptr != '\0') fprintfStr(stderr, "%s: invalid digits in number\n", buf);
+  if (*endptr != '\0') fprintfStr(STDERR, "%s: invalid digits in number\n", buf);
   return mkNumber(number);
 }
 
@@ -337,7 +337,7 @@ Cell *readList(int d, FILEPTR in)
     else {
       ungetChar(c, in);
       cell= readFile(in);
-      if (feof(in)) fatal("EOF in list");
+      if (FEOF(in)) fatal("EOF in list");
       tail= rplacd(tail, cons(cell, 0));
     }
   }
@@ -380,7 +380,7 @@ static void initReaders(Reader r, const char *chars)
 
 Cell *undefined(Cell *sym)
 {
-  fprintfStr(stderr, "undefined: %s\n", symbol(sym));
+  fprintfStr(STDERR, "undefined: %s\n", symbol(sym));
   return 0;
 }
 
@@ -494,8 +494,8 @@ Cell *apply(Cell *fn, Cell *args, Cell *env)
     }
     default:	break;
     }
-  fprintStr(stderr, "cannot apply: ");
-  println(fn, stderr);
+  fprintStr(STDERR, "cannot apply: ");
+  println(fn, STDERR);
   return 0;
 }
 
@@ -711,7 +711,7 @@ Cell *assqSubr(Cell *args, Cell *env)	{ return assq(car(args), cadr(args)); }
 Cell *printlnSubr(Cell *args, Cell *env)
 {
   for (;  args;  args= cdr(args)) {
-    print(car(args), stdout);
+    print(car(args), STDOUT);
     if (cdr(args)) putChar(' ');
   }
   putChar('\n');
@@ -797,18 +797,18 @@ Cell *repl(FILEPTR in)
   GC_WATCH(value);
   GC_PROTECT(expr);
   GC_PROTECT(value);
-  while (!feof(in)) {
+  while (!FEOF(in)) {
     if (isaTTY(in)) {
       printStr("> ");
-      fflush(stdout);
+      FFLUSH(STDOUT);
     }
     expr= readFile(in);
     if (CEOF == expr) break;
-    if (xFlag) println(expr, stderr);
+    if (xFlag) println(expr, STDERR);
     if (expr) {
       value= eval(expr, globals);
-      if (isaTTY(in)) println(value, stderr);
-      if (vFlag) { fprintStr(stderr, "==> ");  println(value, stderr); }
+      if (isaTTY(in)) println(value, STDERR);
+      if (vFlag) { fprintStr(STDERR, "==> ");  println(value, STDERR); }
     }
   }
   GC_UNPROTECT(expr);
@@ -857,6 +857,8 @@ int main(int argc, char **argv)
   GC_free_function= freeFunction;
 #endif
 
+  platformInit();
+
   for (i= 0;  i < 256;  ++i) readers[i]= readIllegal;
   initReaders(readBlank,  " \t\n\v\f\r");
   initReaders(readDigit,  "0123456789");
@@ -895,18 +897,18 @@ int main(int argc, char **argv)
   GC_PROTECT(globals);
   GC_PROTECT(interns);
 
-  if (argc == 1) repl(stdin);
+  if (argc == 1) repl(STDIN);
   else {
     for (++argv;  argc > 1;  --argc, ++argv) {
       if      (!strcmp(*argv, "-v")) vFlag= 1;
       else if (!strcmp(*argv, "-x")) xFlag= 1;
-      else if (!strcmp(*argv, "-" )) repl(stdin);
+      else if (!strcmp(*argv, "-" )) repl(STDIN);
       else {
-	FILEPTR in= fopen(*argv, "r");
-	if (!in) perror(*argv);
+	FILEPTR in= FOPEN(*argv, "r");
+	if (!in) printError(*argv);
 	else {
 	  repl(in);
-	  fclose(in);
+	  FCLOSE(in);
 	}
       }
     }
