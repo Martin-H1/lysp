@@ -29,30 +29,9 @@ size_t 	GC_count_bytes(void);
 
 extern struct GC_StackRoot *GC_stack_roots;
 
-#ifndef CC65
-static inline void GC_push_root(struct GC_StackRoot *sr)
-{
-  sr->next= GC_stack_roots;
-  GC_stack_roots= sr;
-}
-#else
 void GC_push_root(struct GC_StackRoot *sr);
-#endif
 
-#ifndef CC65
-static inline void GC_pop_root(struct GC_StackRoot *sr)
-{
-#if 1
-  GC_stack_roots= sr->next;
-#else /* paranoid version for broken code warns of mismatched pops with a SEGV */
-  struct GC_StackRoot *nr= sr->next;
-  while (nr != GC_stack_roots)
-    GC_stack_roots= GC_stack_roots->next;
-#endif
-}
-#else
 void GC_pop_root(struct GC_StackRoot *sr);
-#endif
 
 typedef void (*GC_mark_function_t)(void *ptr);
 extern GC_mark_function_t GC_mark_function;

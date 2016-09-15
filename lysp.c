@@ -24,7 +24,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
-#include <unistd.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -42,22 +41,15 @@
 #define balloc	GC_malloc_atomic
 #define malloc	GC_malloc
 
-#ifndef CC65
-#define MAX_BUF 1024
-#else
-#define MAX_BUF 128
-#define isatty(V) 1
-#endif
-
 #include "platform.h"
 
 static void fatal(const char *fmt, ...)
 {
   va_list ap;
   va_start(ap, fmt);
-  fprintf(stderr, "\nError: ");
+  fprintStr(stderr, "\nError: ");
   vfprintf(stderr, fmt, ap);
-  fprintf(stderr, "\n");
+  fprintStr(stderr, "\n");
   va_end(ap);
   exit(1);
 }
@@ -181,7 +173,7 @@ Cell *print(Cell *self, FILEPTR stream)
       fprintStr(stream, "(");
       while (self && consP(self)) {
 	print(car(self), stream);
-	if ((self= cdr(self))) fputc(' ', stream);
+	if ((self= cdr(self))) fputChar(' ', stream);
       }
       if (self) {
 	fprintStr(stream, ". ");
@@ -453,8 +445,10 @@ typedef union { char *argp; } *arglist_t;
 
 long primcall(apply_t fn, arglist_t args, int size)
 {
+#ifndef CC65
   void *ret= __builtin_apply(fn, args, size);
   __builtin_return(ret);
+#endif
 }
 
 void *cellToPrim(Cell *cell)
@@ -721,9 +715,9 @@ Cell *printlnSubr(Cell *args, Cell *env)
 {
   for (;  args;  args= cdr(args)) {
     print(car(args), stdout);
-    if (cdr(args)) putchar(' ');
+    if (cdr(args)) putChar(' ');
   }
-  putchar('\n');
+  putChar('\n');
   return 0;
 }
 
@@ -807,7 +801,7 @@ Cell *repl(FILEPTR in)
   GC_PROTECT(expr);
   GC_PROTECT(value);
   while (!feof(in)) {
-    if (isatty(fileno(in))) {
+    if (isaTTY(in)) {
       printStr("> ");
       fflush(stdout);
     }
@@ -816,7 +810,7 @@ Cell *repl(FILEPTR in)
     if (xFlag) println(expr, stderr);
     if (expr) {
       value= eval(expr, globals);
-      if (isatty(fileno(in))) println(value, stderr);
+      if (isaTTY(in)) println(value, stderr);
       if (vFlag) { fprintStr(stderr, "==> ");  println(value, stderr); }
     }
   }

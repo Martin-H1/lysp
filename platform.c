@@ -77,7 +77,22 @@ void ungetChar(char c, FILEPTR input)
   ungetc(c, (FILE *)input);
 }
 
+void fputChar(char c, FILEPTR output)
+{
+  fputc(c, (FILE*)output);
+}
+
+void putChar(char c)
+{
+  putchar(c)
+}
+
 void* heapAlloc(long incr)
 {
   return sbrk(incr);
+}
+
+int isaTTY(FILEPTR in)
+{
+  return isatty(fileno(in));
 }

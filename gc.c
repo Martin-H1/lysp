@@ -303,6 +303,23 @@ size_t GC_count_bytes(void)
   return count;
 }
 
+void GC_push_root(struct GC_StackRoot *sr)
+{
+  sr->next= GC_stack_roots;
+  GC_stack_roots= sr;
+}
+
+void GC_pop_root(struct GC_StackRoot *sr)
+{
+#if 1
+  GC_stack_roots= sr->next;
+#else /* paranoid version for broken code warns of mismatched pops with a SEGV */
+  struct GC_StackRoot *nr= sr->next;
+  while (nr != GC_stack_roots)
+    GC_stack_roots= GC_stack_roots->next;
+#endif
+}
+
 #if 0
 
 #include <stdlib.h>
