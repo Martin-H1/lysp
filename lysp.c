@@ -845,7 +845,11 @@ void freeFunction(void *ptr)
 }
 #endif
 
+#ifndef CC65
 int main(int argc, char **argv)
+#else
+int main()
+#endif
 {
   int i;
   GC_WATCH(globals);
@@ -897,6 +901,7 @@ int main(int argc, char **argv)
   GC_PROTECT(globals);
   GC_PROTECT(interns);
 
+#ifndef CC65
   if (argc == 1) repl(STDIN);
   else {
     for (++argv;  argc > 1;  --argc, ++argv) {
@@ -913,6 +918,9 @@ int main(int argc, char **argv)
       }
     }
   }
+#else
+  repl(STDIN);
+#endif
 
   return 0;
 }
