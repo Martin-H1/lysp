@@ -132,3 +132,9 @@ int isaTTY(FILEPTR in)
 {
   return isatty(fileno(in));
 }
+
+void zfailed (const char* file, unsigned line)
+{
+    fprintf (stderr, "ASSERTION FAILED IN %s(%u)\n", file, line);
+    exit (2);
+}

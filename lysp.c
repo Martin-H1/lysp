@@ -25,7 +25,6 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <errno.h>
-#include <assert.h>
 
 #ifndef BDWGC
 # error you did neither -DBDWGC=0 nor -DBDWGC=1 in the compilation command

@@ -51,4 +51,12 @@ void* heapAlloc(long);
 
 int isaTTY(FILEPTR);
 
+#undef assert
+#ifdef NDEBUG
+#  define assert(expr)
+#else
+void zfailed (const char*, unsigned);
+#  define assert(expr) 	((expr)? (void)0 : zfailed(__FILE__, __LINE__))
+#endif
+
 #endif /* _PLATFORM_H_ */
