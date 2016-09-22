@@ -775,14 +775,7 @@ access(ptr)
 
 #undef access
 
-#ifndef CC65
-#include <dlfcn.h>
-
-void *rtldDefault= 0;
-
-Cell *dlsymSubr(Cell *args, Cell *env)	{ return stringP(car(args)) ? mkPsubr(dlsym(rtldDefault, string(car(args)))) : 0; }
-#endif
-
+Cell *dlsymSubr(Cell *args, Cell *env)	{ return stringP(car(args)) ? mkPsubr(resolveSymbol(string(car(args)))) : 0; }
 Cell *fsubrSubr(Cell *args, Cell *env)	{ return psubrP (car(args)) ? mkFsubr(psubr(car(args))) : 0; }
 Cell *subrSubr (Cell *args, Cell *env)	{ return psubrP (car(args)) ? mkSubr (psubr(car(args))) : 0; }
 
@@ -877,10 +870,6 @@ int main()
   initReaders(readAlpha,  ".");
   initReaders(readSemi,   ";");
 
-#ifndef CC65
-  rtldDefault= dlopen(0, RTLD_NOW | RTLD_GLOBAL);
-#endif
-
   _S_t	     = intern("t");
   _S_quote   = intern("quote");
   _S_qquote  = intern("quasiquote");
@@ -888,9 +877,7 @@ int main()
   _S_uquotes = intern("unquote-splicing");
 
   globals= cons(cons(intern("t"	),	   _S_t			 ), globals);
-#ifndef CC65
   globals= cons(cons(intern("dlsym"	), mkSubr (dlsymSubr	)), globals);
-#endif
   globals= cons(cons(intern("fsubr" 	), mkSubr (fsubrSubr 	)), globals);
   globals= cons(cons(intern("subr" 	), mkSubr (subrSubr 	)), globals);
   globals= cons(cons(intern("define" 	), mkFsubr(defineFsubr 	)), globals);

@@ -16,6 +16,8 @@
 
 void platformInit();
 
+void* resolveSymbol(const char *);
+
 void printError(const char *);
 void printStr(const char *);
 void printfChar(const char *, char);
