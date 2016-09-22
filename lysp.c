@@ -737,6 +737,34 @@ arithmetic(modulus,	1, %)
 
 #undef arithmetic
 
+struct _SymbolTablePair
+{
+  const char * symbolName;
+  Subr_t procAddr;
+};
+
+typedef struct _SymbolTablePair SymbolTablePair;
+
+SymbolTablePair symbolTable[] = {
+  {"addSubr", addSubr},
+  {"subtractSubr", subtractSubr},
+  {"multiplySubr", multiplySubr},
+  {"divideSubr", divideSubr},
+  {"modulusSubr", modulusSubr}
+};
+
+void* resolveSymbol(const char * symbol)
+{
+  int idx;
+  for (idx = 0; idx < sizeof symbolTable / sizeof symbolTable[0]; idx++)
+  {
+    if (strcmp(symbol, symbolTable[idx].symbolName) == 0)
+      return symbolTable[idx].procAddr;
+  }
+
+  return NULL;
+}
+
 #define relation(name, op)					\
 Cell *name##Subr(Cell *args, Cell *env)				\
 {								\
