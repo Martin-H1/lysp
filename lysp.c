@@ -702,6 +702,7 @@ Cell *evalSubr(Cell *args, Cell *env)
 
 Cell *applySubr(Cell *args, Cell *env)	{ return apply(car(args), cdr(args), env); }
 Cell *consSubr(Cell *args, Cell *env)	{ return cons(car(args), cadr(args)); }
+Cell *rplacaSubr(Cell *args, Cell *env)	{ return rplaca(car(args), cadr(args)); }
 Cell *rplacdSubr(Cell *args, Cell *env)	{ return rplacd(car(args), cadr(args)); }
 Cell *carSubr(Cell *args, Cell *env)	{ return caar(args); }
 Cell *cdrSubr(Cell *args, Cell *env)	{ return cdar(args); }
@@ -736,34 +737,6 @@ arithmetic(divide,	1, /)
 arithmetic(modulus,	1, %)
 
 #undef arithmetic
-
-struct _SymbolTablePair
-{
-  const char * symbolName;
-  Subr_t procAddr;
-};
-
-typedef struct _SymbolTablePair SymbolTablePair;
-
-SymbolTablePair symbolTable[] = {
-  {"addSubr", addSubr},
-  {"subtractSubr", subtractSubr},
-  {"multiplySubr", multiplySubr},
-  {"divideSubr", divideSubr},
-  {"modulusSubr", modulusSubr}
-};
-
-void* resolveSymbol(const char * symbol)
-{
-  int idx;
-  for (idx = 0; idx < sizeof symbolTable / sizeof symbolTable[0]; idx++)
-  {
-    if (strcmp(symbol, symbolTable[idx].symbolName) == 0)
-      return symbolTable[idx].procAddr;
-  }
-
-  return NULL;
-}
 
 #define relation(name, op)					\
 Cell *name##Subr(Cell *args, Cell *env)				\
@@ -803,7 +776,6 @@ access(ptr)
 
 #undef access
 
-Cell *dlsymSubr(Cell *args, Cell *env)	{ return stringP(car(args)) ? mkPsubr(resolveSymbol(string(car(args)))) : 0; }
 Cell *fsubrSubr(Cell *args, Cell *env)	{ return psubrP (car(args)) ? mkFsubr(psubr(car(args))) : 0; }
 Cell *subrSubr (Cell *args, Cell *env)	{ return psubrP (car(args)) ? mkSubr (psubr(car(args))) : 0; }
 
@@ -905,12 +877,57 @@ int main()
   _S_uquotes = intern("unquote-splicing");
 
   globals= cons(cons(intern("t"	),	   _S_t			 ), globals);
-  globals= cons(cons(intern("dlsym"	), mkSubr (dlsymSubr	)), globals);
   globals= cons(cons(intern("fsubr" 	), mkSubr (fsubrSubr 	)), globals);
   globals= cons(cons(intern("subr" 	), mkSubr (subrSubr 	)), globals);
   globals= cons(cons(intern("define" 	), mkFsubr(defineFsubr 	)), globals);
 
   globals= cons((syntaxTable= cons(intern("*syntax-table*"), 0)), globals);
+
+  /* Define the extened environment in C rather than using Lisp.
+   * This elimnates the need for dynamic symbol lookup.
+   */
+  globals= cons(cons(intern("flambda" 	), mkFsubr(flambdaFsubr	)), globals);
+  globals= cons(cons(intern("lambda" 	), mkFsubr(lambdaFsubr 	)), globals);
+  globals= cons(cons(intern("let" 	), mkFsubr(letFsubr 	)), globals);
+  globals= cons(cons(intern("if" 	), mkFsubr(ifFsubr 	)), globals);
+  globals= cons(cons(intern("while" 	), mkFsubr(whileFsubr 	)), globals);
+  globals= cons(cons(intern("setq" 	), mkFsubr(setqFsubr 	)), globals);
+  globals= cons(cons(intern("cons"	), mkSubr (consSubr	)), globals);
+  globals= cons(cons(intern("rplaca"	), mkSubr (rplacaSubr	)), globals);
+  globals= cons(cons(intern("rplacd"	), mkSubr (rplacdSubr	)), globals);
+  globals= cons(cons(intern("car"	), mkSubr (carSubr	)), globals);
+  globals= cons(cons(intern("cdr"	), mkSubr (cdrSubr	)), globals);
+  globals= cons(cons(intern("eval"	), mkSubr (evalSubr	)), globals);
+  globals= cons(cons(intern("apply"	), mkSubr (applySubr	)), globals);
+  globals= cons(cons(intern("map"	), mkSubr (mapSubr	)), globals);
+  globals= cons(cons(intern("assq"	), mkSubr (assqSubr	)), globals);
+  globals= cons(cons(intern("println"	), mkSubr (printlnSubr	)), globals);
+  globals= cons(cons(intern("+"		), mkSubr (addSubr	)), globals);
+  globals= cons(cons(intern("-"		), mkSubr (subtractSubr	)), globals);
+  globals= cons(cons(intern("*"		), mkSubr (multiplySubr	)), globals);
+  globals= cons(cons(intern("/"		), mkSubr (divideSubr	)), globals);
+  globals= cons(cons(intern("%"		), mkSubr (modulusSubr	)), globals);
+  globals= cons(cons(intern("<"		), mkSubr (lessSubr	)), globals);
+  globals= cons(cons(intern("<="	), mkSubr (lessEqualSubr)), globals);
+  globals= cons(cons(intern("=="	), mkSubr (equalSubr	)), globals);
+  globals= cons(cons(intern("!="	), mkSubr (notEqualSubr)), globals);
+  globals= cons(cons(intern(">="	), mkSubr (greaterEqualSubr)), globals);
+  globals= cons(cons(intern(">"		), mkSubr (greaterSubr	)), globals);
+
+  /* Still need to define these:
+(define nil ())
+(define caar	(lambda (x) (car (car x))))
+(define cadr	(lambda (x) (car (cdr x))))
+(define cdar	(lambda (x) (cdr (car x))))
+(define cddr	(lambda (x) (cdr (cdr x))))
+(define cadar	(lambda (x) (car (cdr (car x)))))
+(define caddar	(lambda (x) (car (cdr (cdr (car x))))))
+(define quote	(flambda (form) (car form)))
+(define list	(lambda args args))
+(define global-environment
+  (let ((globals ((flambda (args env) env))))
+    (lambda () globals)))
+   */
 
   GC_PROTECT(globals);
   GC_PROTECT(interns);
