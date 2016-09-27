@@ -776,6 +776,7 @@ access(ptr)
 
 #undef access
 
+Cell *dlsymSubr(Cell *args, Cell *env)	{ return stringP(car(args)) ? mkPsubr(resolveSymbol(string(car(args)))) : 0; }
 Cell *fsubrSubr(Cell *args, Cell *env)	{ return psubrP (car(args)) ? mkFsubr(psubr(car(args))) : 0; }
 Cell *subrSubr (Cell *args, Cell *env)	{ return psubrP (car(args)) ? mkSubr (psubr(car(args))) : 0; }
 
@@ -877,6 +878,7 @@ int main()
   _S_uquotes = intern("unquote-splicing");
 
   globals= cons(cons(intern("t"	),	   _S_t			 ), globals);
+  globals= cons(cons(intern("dlsym"	), mkSubr (dlsymSubr	)), globals);
   globals= cons(cons(intern("fsubr" 	), mkSubr (fsubrSubr 	)), globals);
   globals= cons(cons(intern("subr" 	), mkSubr (subrSubr 	)), globals);
   globals= cons(cons(intern("define" 	), mkFsubr(defineFsubr 	)), globals);

@@ -22,6 +22,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <dlfcn.h>
+
+void* rtldDefault = NULL;
 
 FILEPTR STDERR;
 FILEPTR STDIN;
@@ -32,6 +35,13 @@ void platformInit()
   STDERR = stderr;
   STDIN = stdin;
   STDOUT = stdout;
+
+  rtldDefault= dlopen(0, RTLD_NOW | RTLD_GLOBAL);
+}
+
+void* resolveSymbol(const char * symbol)
+{
+  return dlsym(rtldDefault, symbol);
 }
 
 void printError(const char * str)
