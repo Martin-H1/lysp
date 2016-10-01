@@ -1,4 +1,7 @@
 *~
+*.lst
+lysp.map
+lysp.65b
 /gclysp
 /lysp
 /olysp
