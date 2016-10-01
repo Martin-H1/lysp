@@ -34,23 +34,18 @@ void platformInit()
 struct _SymbolTablePair
 {
   const char * symbolName;
-  Subr_t procAddr;
+  void * procAddr;
 };
 
 typedef struct _SymbolTablePair SymbolTablePair;
 
 SymbolTablePair symbolTable[] = {
-  {"addSubr", addSubr},
-  {"subtractSubr", subtractSubr},
-  {"multiplySubr", multiplySubr},
-  {"divideSubr", divideSubr},
-  {"modulusSubr", modulusSubr}
 };
 
 void* resolveSymbol(const char * symbol)
 {
   int idx;
-  for (idx = 0; idx < sizeof symbolTable / sizeof symbolTable[0]; idx++)
+  for (idx = 0; symbolTable[idx].symbolName != NULL; idx++)
   {
     if (strcmp(symbol, symbolTable[idx].symbolName) == 0)
       return symbolTable[idx].procAddr;
