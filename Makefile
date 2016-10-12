@@ -3,10 +3,14 @@ CFLAGSO = -O3 -g -Wall -DNDEBUG
 CFLAGSs = -Os -g -Wall -DNDEBUG
 LDLIBS  = -rdynamic
 
-all : lysp gclysp
+all : lysp gclysp gctest
 
 lysp : lysp.c gc.c
 	$(CC) $(CFLAGS)  -DBDWGC=0 -o $@ lysp.c gc.c platform.c $(LDLIBS) -ldl
+	size $@
+
+gctest : gc.c gctest.c
+	$(CC) $(CFLAGS)  -DBDWGC=0 -o $@ gc.c gctest.c platform.c $(LDLIBS) -ldl
 	size $@
 
 olysp: lysp.c gc.c
